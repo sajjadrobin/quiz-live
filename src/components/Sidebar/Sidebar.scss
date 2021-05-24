@@ -1,0 +1,26 @@
+@import "src/variables.scss";
+
+.sidebar {
+  padding: 0 20px 60px 20px;
+  position: absolute;
+
+  .menuContainer{
+    margin-bottom: 24px;
+    border-bottom: none;
+    line-height: 16px;
+    font-size: 12px;
+    color: $grey-2;
+
+    .ant-menu-item-selected {
+      border-bottom: none;
+      font-weight: bold;
+      color: black;
+    }
+  }
+}
+
+.fixed-sidebar {
+  width: 25vw;
+  position: relative;
+  overflow: hidden;
+}
