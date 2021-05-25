@@ -1,18 +1,31 @@
 import React, {Component, createRef} from "react";
+import {withRouter} from 'react-router-dom';
 import {v4 as uuidv4} from 'uuid';
 import ScrollContainer from "react-indiana-drag-scroll";
-import {Select} from "antd";
+import {Select, Row, Col} from 'antd';
 import AgoraRTC from "agora-rtc-sdk-ng";
+import { observer } from "mobx-react";
 
-import {LocalPlayerAspectRatio} from "./AspectRatio";
+import {LocalPlayerAspectRatio, CarouselAspectRatio} from "./AspectRatio";
+import AppStore from "stores/AppStore";
+//import cookies from "utils/CookiesHelper";
 
-import VideoOff from "assets/controls/camera/VideoOff.png";
-import VideoOn from "assets/controls/camera/VideoOn.png";
-import MicOn from "assets/controls/mic/MicOn.png";
-import MicOff from "assets/controls/mic/MicOff.png";
+import VideoOff from "assets/controls/camera/VideoOff.svg";
+import VideoOn from "assets/controls/camera/VideoOnBlack.svg";
+import MicOn from "assets/controls/mic/MicOnBlack.svg";
+import MicOff from "assets/controls/mic/MicOff.svg";
+import Hand from "assets/controls/raise_hand/Hand.svg";
+import Chat from "assets/controls/raise_hand/Icon.svg";
+
 
 import clientOptions from "AgoraSettings";
 import "./Client.scss";
+import Audiences from "./Audiences";
+import Host from "./Host";
+
+const AUDIO_MUTE = "audiomute";
+const VIDEO_MUTE = "videomute";
+//const cookies = new Cookies();
 
 class Client extends Component {
   localTracks = {
@@ -22,10 +35,10 @@ class Client extends Component {
 
   client;
   urlParams = new URL(window.location.href).searchParams;
-
-  remoteUsers = {};
   isHost = false;
   localPlayerContainerRef;
+  resizeTimer;
+  localUid = "";
 
   constructor(props) {
     super(props);
@@ -39,199 +52,244 @@ class Client extends Component {
       isAudioActive: true,
       isVideoActive: true,
       localPlayerContainerWidth: 0,
-      localPlayerContainerHeight: 0
+      localPlayerContainerHeight: 0,
+      speakerUid: ""
+    }
 
-    };
-
-    this.isHost = !!this.urlParams.get("host");
+    //this.isHost = !!this.urlParams.get("host");
+    this.isHost = true;
     this.localPlayerContainerRef = createRef();
   }
 
-  buildAudienceContainer(uid) {
-    const playerContainer = document.createElement("div");
-    playerContainer.classList.add("video-container");
-    playerContainer.style.transform = "rotateY(180deg)";
-
-    const textContainer = document.createElement("div");
-    textContainer.textContent = uid.toString().slice(0,5);
-    textContainer.classList.add("name-tag");
-
-    playerContainer.append(textContainer);
-
-    return playerContainer;
-  }
 
   async subscribe(user, mediaType) {
     const uid = user.uid;
 
     //subscribe to a remote user
     await this.client.subscribe(user, mediaType);
-    console.log("subscribe success");
 
     if (mediaType === "video") {
-      // Get `RemoteVideoTrack` in the `user` object.
-      const remoteVideoTrack = user.videoTrack;
       if (uid === "host") {
-        document.getElementById("local-player").classList.add("remote-host-view");
-        remoteVideoTrack.play("local-player");
-
-        const textContainer = document.createElement("div");
-        textContainer.classList.add("name-tag-audience-view");
-        textContainer.textContent = "Host";
-        document.getElementById("local-player").append(textContainer);
+        AppStore.addHostInfo("video", user.videoTrack);
+        AppStore.addHostInfo("tag", "Host");
+        AppStore.addHostInfo("ref", React.createRef());
       } else {
-        const playerContainer = this.buildAudienceContainer(uid);
-
-        const playerContainerAspectRatio = document.createElement("div");
-        playerContainerAspectRatio.id = uid.toString();
-        playerContainerAspectRatio.classList.add("player-container-aspect-ratio");
-        playerContainerAspectRatio.append(playerContainer);
-
-        document.getElementsByClassName("remote-users-container")[0].append(playerContainerAspectRatio);
-        remoteVideoTrack.play(playerContainer);
-
+        AppStore.addTrack(uid, "video", user.videoTrack);
       }
     }
 
     // If the subscribed track is audio.
     if (mediaType === "audio") {
-      // Get `RemoteAudioTrack` in the `user` object.
-      const remoteAudioTrack = user.audioTrack;
-      // Play the audio track. No need to pass any DOM element.
-      remoteAudioTrack.play();
+      if (uid === "host") {
+        AppStore.addHostInfo("audio", user.audioTrack);
+      } else {
+        AppStore.addTrack(uid, "audio", user.audioTrack);
+      }
+    }
+  }
+
+  handleUserInfoUpdated(user, msg) {
+    console.log("USER INFO UPDATED? -->", user);
+    const id = user;
+    if(msg === "mute-audio") {
+      AppStore.handleMediaMute(id, AUDIO_MUTE, true);
+    } else if(msg === "unmute-audio") {
+      AppStore.handleMediaMute(id, AUDIO_MUTE, false);
+    } if(msg === "mute-video") {
+      AppStore.handleMediaMute(id, VIDEO_MUTE, true);
+    } else if(msg === "unmute-video") {
+      AppStore.handleMediaMute(id, VIDEO_MUTE, false);
     }
   }
 
   handleUserPublished(user, mediaType) {
     // TODO: remove console.log
     console.log("published User info: -->", user);
-
-    const id = user.uid;
-    this.remoteUsers[id] = user;
     this.subscribe(user, mediaType);
   }
 
-  handleUserUnpublished(user) {
-    const id = user.uid;
-    delete this.remoteUsers[id];
+  whoIsTheSpeaker(result) {
+    let highestVolumeLevel = 0;
+    let speakerId = "";
 
-    // Get the dynamically created DIV container.
-    const playerContainer = document.getElementById(user.uid);
-    // Destroy the container.
-    if (playerContainer) {
-      playerContainer.remove();
+    if (result) {
+      result.forEach((volume) => {
+
+        if(volume.uid && volume.uid !== "host") {
+          if (volume.level > highestVolumeLevel) {
+            speakerId = volume.uid;
+            highestVolumeLevel = volume.level;
+          }
+        }
+      });
+
+      if(speakerId && highestVolumeLevel > 0.05) { //Need some checking, just adding a level now
+        AppStore.setCurrentSpeaker(speakerId);
+        //AppStore.sortSpeakers();
+      } else {
+        AppStore.setCurrentSpeaker("");
+      }
     }
+  }
 
-    //this.leaveCall();
+  handleAudioMute(uid, muted) {
+    const userDiv = document.getElementById(uid);
+    if(userDiv) {
+      const badgeMute = userDiv.getElementsByClassName("badge-mute")[0];
+      if (muted === true) {
+        badgeMute.style.display = "block";
+      } else {
+        badgeMute.style.display = "none";
+      }
+    }
+  }
+
+  handleUserJoined(user) {
+    //console.log("USER JOINED --> ", user.uid);
+    if (user.uid !== "host") {
+      AppStore.addAudience(user.uid);
+    }
+  }
+
+  handleUserLeft(user) {
+    AppStore.removeAudience(user.uid);
   }
 
   async startBasicCall() {
     await this.client.setClientRole(clientOptions.role);
 
-    //if (this.clientOptions.role === "audience") {
+    this.client.on("user-joined", (user) => this.handleUserJoined(user));
+
     this.client.on("user-published", (user, mediaType) => this.handleUserPublished(user, mediaType));
-    this.client.on("user-unpublished", (user, mediaType) => this.handleUserUnpublished(user));
-    //}
+
+    this.client.on("user-info-updated", (user, msg) => this.handleUserInfoUpdated(user, msg));
+
+    this.client.on("user-left", (user) => this.handleUserLeft(user));
+
+    // check audio level
+    this.client.enableAudioVolumeIndicator();
+    this.client.on("volume-indicator", (result) => this.whoIsTheSpeaker(result));
 
     const {appId, channel, token} = clientOptions;
-    const uidHost = this.urlParams.get("host") ? "host" : uuidv4();
+    //const token = cookies.get("agoraToken");
+    //const displayName = cookies.get("displayName") ?? uuidv4();
+
+    //const uidHost = this.urlParams.get("host") ? "host" : displayName;
+    const uidHost = "host";
+
+    console.log("CALL TOKEN -->", token);
+
     const uid = await this.client.join(appId, channel, token, uidHost);
 
+    this.localUid = uid.toString();
+    AppStore.localUid = this.localUid;
 
-    //TODO: remove log
-    console.log("local userID -->", uid);
+    const VideoEncoderConfigurationPreset = this.isHost ? "480p_8" : "120p_3";
 
-    const VideoEncoderConfigurationPreset = this.isHost? "480p_1" : "120p_1";
-
-    //if (this.clientOptions.role === "host") {
-    // create local audio and video tracks
     this.localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     this.localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
       encoderConfig: VideoEncoderConfigurationPreset
     });
 
-    if (this.isHost) {
-      // play local video track
-      this.localTracks.videoTrack.play("local-player");
-
-      const textContainer = document.createElement("div");
-      textContainer.classList.add("name-tag");
-      textContainer.textContent = "You";
-      document.getElementById("local-player").append(textContainer);
-    } else {
-      const playerContainer = this.buildAudienceContainer(uid.toString());
-
-      const playerContainerAspectRatio = document.createElement("div");
-      playerContainerAspectRatio.id = uid.toString();
-      playerContainerAspectRatio.classList.add("player-container-aspect-ratio");
-      playerContainerAspectRatio.append(playerContainer);
-
-      document.getElementsByClassName("remote-users-container")[0].append(playerContainerAspectRatio);
-      this.localTracks.videoTrack.play(playerContainer);
-    }
-
     if (clientOptions.role === "host") {
       // publish local tracks to channel
       await this.client.publish(Object.values(this.localTracks));
-      console.log("publish success");
     }
 
-    this.localTracks.audioTrack.setVolume(100);
+    if (this.isHost) {
+      AppStore.addHostInfo("audio", this.localTracks.audioTrack);
+      AppStore.addHostInfo("video", this.localTracks.videoTrack);
+      AppStore.addHostInfo("tag", "You");
+      AppStore.addHostInfo("ref", React.createRef());
+    } else {
+      console.log("VIDEO -->", this.localTracks.videoTrack);
+      AppStore.addAudience(uid);
+      AppStore.addTrack(uid, "audio", this.localTracks.audioTrack);
+      AppStore.addTrack(uid, "video", this.localTracks.videoTrack);
+    }
   }
 
-  async leaveCall() {
-    // Destroy the local audio and video tracks.
-    this.localTracks.audioTrack.close();
-    this.localTracks.videoTrack.close();
-
-    // Traverse all remote users.
-    this.remoteUsers.forEach((user) => {
-      // Destroy the dynamically created DIV container.
-      const playerContainer = document.getElementById(user.uid);
-      playerContainer && playerContainer.remove();
+  handleResize() {
+    const localPlayerBoundary = document.getElementsByClassName("host-player")[0].getBoundingClientRect();
+    this.setState({
+      localPlayerContainerWidth: localPlayerBoundary.width,
+      localPlayerContainerHeight: localPlayerBoundary.height,
     });
+  }
 
-    // Leave the channel.
-    await this.client.leave();
+  blockBackButton() {
+    window.history.pushState(null, "", document.URL);
+    window.addEventListener('popstate', function () {
+      window.history.pushState(null, "", document.URL);
+    });
   }
 
   componentDidMount() {
+    this.blockBackButton();
     this.startBasicCall();
 
-    // TODO: remove console.log
-    console.log("local ref ---> ", this.localPlayerContainerRef);
+    const localPlayerBoundary = document.getElementsByClassName("host-player")[0].getBoundingClientRect();
     this.setState({
-      localPlayerContainerHeight: window.innerHeight - 194,
-      localPlayerContainerWidth: window.innerWidth * 0.75
+      localPlayerContainerHeight: localPlayerBoundary.height,
+      localPlayerContainerWidth: localPlayerBoundary.width
     });
 
+    window.addEventListener('resize', () => {
+      clearTimeout(this.resizeTimer);
+      this.resizeTimer = setTimeout(() =>
+        this.handleResize(), 500);
+    });
   }
 
-  handleAudio(type) {
-    switch (type) {
-      case "mute":
-        this.localTracks.audioTrack.setVolume(0);
-        this.setState({isAudioActive: false});
-        break;
+  // handleAudio(type) {
+  //   console.log("HANDLE AUDIO -->", type);
+  //   switch (type) {
+  //     case "mute":
+  //       AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, true);
+  //       this.localTracks.audioTrack.setEnabled(false);
+  //       this.setState({isAudioActive: false});
+  //       break;
+  //
+  //     case "unmute":
+  //       AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, false);
+  //       this.localTracks.audioTrack.setEnabled(true);
+  //       this.setState({isAudioActive: true});
+  //       break;
+  //     default:
+  //       // do nothing
+  //   }
+  // }
+  //
+  // handleVideo(type) {
+  //   switch (type) {
+  //     case "off":
+  //       this.localTracks.videoTrack.setEnabled(false);
+  //       this.setState({isVideoActive: false});
+  //       break;
+  //     case "on":
+  //       this.localTracks.videoTrack.setEnabled(true);
+  //       this.setState({isVideoActive: true})
+  //       break;
+  //     default:
+  //       // do nothing
+  //   }
+  // }
 
-      case "unmute":
-        this.localTracks.audioTrack.setVolume(100);
-        this.setState({isAudioActive: true});
-        break;
-    }
+  handleAudio() {
+    const isAudioActive = !this.state.isAudioActive;
+    AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, !isAudioActive);
+    this.localTracks.audioTrack.setEnabled(isAudioActive);
+    this.setState({isAudioActive});
+    // this.localStream.getAudioTracks()[0].enabled = isAudioActive;
+    // this.setState({isAudioActive});
   }
 
-  handleVideo(type) {
-    switch (type) {
-      case "off":
-        this.localTracks.videoTrack.setEnabled(false);
-        this.setState({isVideoActive: false});
-        break;
-      case "on":
-        this.localTracks.videoTrack.setEnabled(true);
-        this.setState({isVideoActive: true})
-        break;
-    }
+  handleVideo() {
+    const isVideoActive = !this.state.isVideoActive;
+    this.localTracks.videoTrack.setEnabled(isVideoActive);
+    this.setState({isVideoActive});
+    // this.localStream.getVideoTracks()[0].enabled = isVideoActive;
+    // this.setState({isVideoActive});
   }
 
   setVideoEncoderConfigurationPreset(value) {
@@ -239,52 +297,106 @@ class Client extends Component {
   }
 
   render() {
-    const {isAudioActive, isVideoActive, localPlayerContainerHeight, localPlayerContainerWidth} = this.state;
+    //console.log("RENDER TOKEN ->", UserApi.agoraToken);
+    const {isAudioActive, isVideoActive, localPlayerContainerWidth, localPlayerContainerHeight} = this.state;
     return (
       <div className="client-container">
-        <LocalPlayerAspectRatio
-          height={localPlayerContainerHeight}
-          width={localPlayerContainerWidth}
-          ref={this.localPlayerContainerRef}>
-          <div id="local-player" className="player"/>
-        </LocalPlayerAspectRatio>
-        <ScrollContainer className="remote-users-container"/>
+        <div className="host-audience-container">
+          <Row>
+            <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+              <LocalPlayerAspectRatio
+                height={localPlayerContainerHeight}
+                width={localPlayerContainerWidth}
+                idealHeight={window.innerHeight - 250}
+                idealWidth={window.innerWidth * 0.75 - 48}
+                className="player host-player"
+                id="host">
+                <Host/>
+              </LocalPlayerAspectRatio>
+            </Col>
+          </Row>
+          <Row>
+            <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+              <CarouselAspectRatio
+                height={localPlayerContainerHeight}
+                width={localPlayerContainerWidth}
+                idealHeight={window.innerHeight - 250}
+                idealWidth={window.innerWidth - 68}
+                id="remote-users-wrapper"
+              >
+                <ScrollContainer className="remote-users-container">
+                  <Audiences/>
+                </ScrollContainer>
+              </CarouselAspectRatio>
+            </Col>
+          </Row>
+        </div>
         <div className="audio-video-controller">
-          {isVideoActive && (<img
-            onClick={() => this.handleVideo("off")}
-            alt="Video Off"
-            src={VideoOn}/>)}
+          <div
+            onClick={() => this.handleVideo()}
+            className={`${isVideoActive ? "active-media" : "not-active-media"} camera-mic-buttons`}>
+            {isVideoActive && (<img
+              alt="Video Off"
+              src={VideoOn}/>)}
 
-          {!isVideoActive && (<img
-            onClick={() => this.handleVideo("on")}
-            alt="Video On"
-            src={VideoOff}/>)}
-
-          {isAudioActive && (<img
-            onClick={() => this.handleAudio("mute")}
-            alt="Mic On"
-            src={MicOn}/>)}
-          {!isAudioActive && (<img
-            onClick={() => this.handleAudio("unmute")}
-            alt="Mic Off"
-            src={MicOff}/>)}
-
-          <Select
-            defaultValue="480p_1"
-            style={{ width: 120 }}
-            onChange={(value)=>this.setVideoEncoderConfigurationPreset(value)}>
-            <Select.Option value="120p_1">120p_1</Select.Option>
-            <Select.Option value="180p_1">180p_1</Select.Option>
-            <Select.Option value="240p_1">240p_1</Select.Option>
-            <Select.Option value="480p_1">480p_1</Select.Option>
-            <Select.Option value="720p_1">720p_1</Select.Option>
-            <Select.Option value="1440p_1">1440p_1</Select.Option>
-          </Select>
+            {!isVideoActive && (<img
+              alt="Video On"
+              src={VideoOff}/>)}
+          </div>
+          <div
+            onClick={() => this.handleAudio()}
+            className={`${isAudioActive ? "active-media" : "not-active-media"} camera-mic-buttons`}>
+            {isAudioActive && (<img
+              alt="Mic On"
+              src={MicOn}/>)}
+            {!isAudioActive && (<img
+              alt="Mic Off"
+              src={MicOff}/>)}
+          </div>
+          <div className="active-media camera-mic-buttons">
+            <img
+              alt="Hand Raise"
+              src={Hand}/>
+          </div>
+          <div className="active-media camera-mic-buttons">
+            <img
+              alt="Chat"
+              src={Chat}/>
+          </div>
+          {this.isHost && (
+            <>
+              <label>16:9</label>
+              <Select
+                defaultValue="480p_8"
+                style={{width: 120}}
+                onChange={(value) => this.setVideoEncoderConfigurationPreset(value)}>
+                <Select.Option value="180p_1">180p_1</Select.Option>
+                <Select.Option value="360p_1">360p_1</Select.Option>
+                <Select.Option value="480p_8">480p_8</Select.Option>
+                <Select.Option value="720p_1">720p_1</Select.Option>
+                <Select.Option value="1080p_1">1080p_1</Select.Option>
+                <Select.Option value="1440p_1">1440p_1</Select.Option>
+              </Select>
+              <label>Square</label>
+              <Select
+                defaultValue="480p_6"
+                style={{width: 120}}
+                onChange={(value) => this.setVideoEncoderConfigurationPreset(value)}>
+                <Select.Option value="120p_3">120p_3</Select.Option>
+                <Select.Option value="180p_3">180p_3</Select.Option>
+                <Select.Option value="240p_3">240p_3</Select.Option>
+                <Select.Option value="360p_3">360p_3</Select.Option>
+                <Select.Option value="480p_6">480p_6</Select.Option>
+                <Select.Option value="720p_5">720p_5</Select.Option>
+              </Select>
+            </>
+          )}
         </div>
       </div>
     )
+
   }
 }
 
 
-export default Client;
+export default withRouter(observer(Client));

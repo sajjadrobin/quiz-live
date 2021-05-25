@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Form, Input, Button, FormInstance} from 'antd';
+import {Form, Input, Button} from 'antd';
 import * as dayjs from 'dayjs';
 import qs from 'qs';
 
@@ -17,15 +17,18 @@ const tailLayout = {
 
 
 class Signup extends Component{
-  state = {
-    eventName: "Event name",
-    eventDate:  dayjs().format("DD MMMM hh:mm"), //"20 february 16:30"
-    email: "",
-    signupDone: false,
-    isBookingCanceled: false,
-  };
-
   formRef = React.createRef();
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      eventName: "Event name",
+      eventDate:  dayjs().format("DD MMMM hh:mm"), //"20 february 16:30"
+      email: "",
+      signupDone: false,
+      isBookingCanceled: false,
+    };
+  }
 
   onFinish(values) {
     this.setState({

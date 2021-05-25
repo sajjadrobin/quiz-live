@@ -1,120 +1,224 @@
 @import "src/variables.scss";
-$video-aspect-ratio: 56.25%;
+@import "src/screen-sizes.scss";
+$video-aspect-ratio-host: 56.25%;
+$video-aspect-ratio-audience: 100%;
 
 .client-container {
+  position: relative;
+  padding: 0;
   width: 75vw;
-  display: flex;
-  flex-direction: column;
-
-  .remote-host-view {
-    transform: scale(-1,1);
-    div[id^='agora-video-player-track'] {
-      z-index: -1;
-    }
-  }
-
-  #local-player {
-    height: 0;
-    overflow: hidden;
-    padding-top: $video-aspect-ratio;
-    position: relative;
-
-
-    div[id^='agora-video-player-track'] {
-      border-radius: .4rem;
-      position: absolute !important;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    .name-tag, .name-tag-audience-view {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-
-      color: $white;
-      background-color: $black;
-      z-index: 100;
-      width: 5vw;
-      vertical-align: center;
-      text-align: center;
-      height: 24px;
-    }
-
-    .name-tag-audience-view {
-      transform: scale(-1,1);
-    }
-
-  }
-
-  .remote-users-container {
-    margin-top: 1rem;
-    width: 100%;
-    height: 108px;
-    overflow-x: hidden;
+  .current-speaker {
+    border: 2px solid $current-speaker-border-color;
     box-sizing: border-box;
+    border-radius: 7.71171px;
+  }
+  .host-audience-container {
     display: flex;
+    flex-direction: column;
+    height: calc(100vh - 80px);
+    position: relative;
+    padding-top: 24px;
+    // background: rgba(255, 255, 255, 0.75);
+    .remote-host-view {
+      transform: scale(-1,1);
+      div[id^='agora-video-player-track'] {
+        z-index: -1;
+      }
+    }
 
+    .host-player {
+      overflow: hidden;
+      position: relative;
+      margin:0 auto;
+      height: 0;
 
-    .player-container-aspect-ratio {
-      width: 192px;
-      margin-left: 1%;
-      flex: 0 0 auto;
-
-      .video-container {
-        height: 0;
-        overflow: hidden;
-        padding-top: $video-aspect-ratio;
-        position: relative;
-
-
-        div[id^='agora-video-player-track'] {
+      div[id^='agora-video-player-track'] {
+        border-radius: .4rem;
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: $grey-4 !important;
+        video {
+          // Medium devices (tablets, less than 992px)
+          object-fit: contain !important;
           border-radius: .4rem;
-          position: absolute !important;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: -1;
-
-          video {
-            object-fit: contain !important;
-            transform: rotateY(0deg) !important;
-          }
         }
       }
 
+      .empty-video-container {
+        border-radius: .4rem;
+        background-color: $black;
+        padding-top: 56.25%;
+        width: 100%;
+        top: 0;
+        position: absolute;
+      }
       .name-tag {
         position: absolute;
         bottom: 0;
-        right: 0;
-        font-size: 12px;
-        line-height: 16px;
-        z-index: 1000;
         color: $white;
-        height: 20px;
-        background: $black;
+        background-color: $black;
+        z-index: 100;
         width: 5vw;
         vertical-align: center;
         text-align: center;
-        transform: scale(-1, 1);
+        height: 24px;
+        left: 0;
+        border-radius: 0 .4rem 0 .4rem;
+      }
+      .badge-mute {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background-color: $badge-mute-red;
+        border-radius: .4rem 0 .4rem 0;
+        width: 24px;
+        height: 24px;
+        z-index: 1000;
+        text-align: center;
+        img {
+          vertical-align: text-top;
+          height: 75%;
+        }
+      }
+      .badge-mute-hide {
+        display: none;
+      }
+      .badge-mute-show {
+        display: block;
+      }
+    }
+    #remote-users-wrapper {
+      margin: 0 auto;
+      .remote-users-container {
+        margin: 12px auto 20px;
+        width: 100%;
+        height: 104px;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+
+        .player-container-aspect-ratio {
+          width: 104px;
+          margin-left: 0;
+          margin-right: 4px;
+          flex: 0 0 auto;
+
+          .video-container {
+            height: 0;
+            overflow: hidden;
+            padding-top: $video-aspect-ratio-audience;
+            position: relative;
+
+
+            div[id^='agora-video-player-track'] {
+              border-radius: .4rem;
+              position: absolute !important;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              //z-index: -1;
+              //transform: rotateY(180deg) !important;
+
+              video {
+                object-fit: contain !important;
+                //transform: rotateY(0deg) !important;
+                border-radius: .4rem;
+              }
+            }
+          }
+
+          .empty-video-container {
+            border-radius: .4rem;
+            background-color: $black;
+          }
+
+          .name-tag {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            font-size: 12px;
+            line-height: 16px;
+            z-index: 1000;
+            color: $white;
+            height: 24px;
+            background: $black;
+            max-width: 78px;
+            vertical-align: center;
+            text-align: center;
+            padding: 4px 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            border-radius: 0 .4rem 0 .4rem;
+            //transform: scale(-1, 1);
+          }
+
+          .badge-mute {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: $badge-mute-red;
+            border-radius: .4rem 0 .4rem 0;
+            width: 24px;
+            height: 24px;
+            z-index: 1000;
+            text-align: center;
+
+            img {
+              vertical-align: text-top;
+              height: 75%;
+            }
+          }
+
+          .badge-mute-hide {
+            display: none;
+          }
+
+          .badge-mute-show {
+            display: block;
+          }
+        }
       }
     }
   }
 
-
   .audio-video-controller {
     width: 100%;
-    height: 88px;
-    padding-top: 1rem;
+    height: 80px;
+    padding: 12px 0;
     display: flex;
     justify-content: center;
     align-items: center;
-
-    img {
-      margin-right: 16px;
+    position: fixed;
+    bottom: 0;
+    background: rgba(247, 247, 247, 0.5);
+    .not-active-media {
+      background-color: $badge-mute-red;
+    }
+    .active-media {
+      background-color: $white;
+    }
+    .camera-mic-buttons {
+      width: 93px;
+      height: 44px;
+      border: 1px solid rgba(0, 0, 0, 0.03);
+      border-radius: 8px;
+      text-align: center;
+      //margin-bottom: 8px;
+      margin-right: 8px;
+      padding-top: 7px;
+      cursor: pointer;
+      img {
+        width: 24px;
+        height: 24px;
+      }
     }
   }
 }
