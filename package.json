@@ -12,6 +12,7 @@
     "antd": "4.15.6",
     "axios": "0.21.1",
     "dayjs": "1.10.4",
+    "firebase": "8.6.5",
     "mobx": "6.3.2",
     "mobx-react": "7.2.0",
     "node-sass": "5.0.0",
