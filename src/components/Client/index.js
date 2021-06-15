@@ -1,12 +1,12 @@
-import React, {Component, createRef} from "react";
-import {withRouter} from 'react-router-dom';
-import {v4 as uuidv4} from 'uuid';
+import React, { Component, createRef } from "react";
+import { withRouter } from 'react-router-dom';
 import ScrollContainer from "react-indiana-drag-scroll";
-import {Select, Row, Col} from 'antd';
+import { Select, Row, Col } from 'antd';
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { observer } from "mobx-react";
+import EventApi from "stores/api/EventApi";
 
-import {LocalPlayerAspectRatio, CarouselAspectRatio} from "./AspectRatio";
+import { LocalPlayerAspectRatio, CarouselAspectRatio } from "./AspectRatio";
 import AppStore from "stores/AppStore";
 //import cookies from "utils/CookiesHelper";
 
@@ -22,9 +22,12 @@ import clientOptions from "AgoraSettings";
 import "./Client.scss";
 import Audiences from "./Audiences";
 import Host from "./Host";
+import HighlightedProducts from "components/Product/HighlightedProducts";
+import ProductList from "components/Product/ProductList";
 
 const AUDIO_MUTE = "audiomute";
 const VIDEO_MUTE = "videomute";
+
 //const cookies = new Cookies();
 
 class Client extends Component {
@@ -32,9 +35,8 @@ class Client extends Component {
     videoTrack: null,
     audioTrack: null
   };
-
+  searchParams = new URL(window.location.href).searchParams;
   client;
-  urlParams = new URL(window.location.href).searchParams;
   isHost = false;
   localPlayerContainerRef;
   resizeTimer;
@@ -56,7 +58,6 @@ class Client extends Component {
       speakerUid: ""
     }
 
-    //this.isHost = !!this.urlParams.get("host");
     this.isHost = true;
     this.localPlayerContainerRef = createRef();
   }
@@ -91,13 +92,14 @@ class Client extends Component {
   handleUserInfoUpdated(user, msg) {
     console.log("USER INFO UPDATED? -->", user);
     const id = user;
-    if(msg === "mute-audio") {
+    if (msg === "mute-audio") {
       AppStore.handleMediaMute(id, AUDIO_MUTE, true);
-    } else if(msg === "unmute-audio") {
+    } else if (msg === "unmute-audio") {
       AppStore.handleMediaMute(id, AUDIO_MUTE, false);
-    } if(msg === "mute-video") {
+    }
+    if (msg === "mute-video") {
       AppStore.handleMediaMute(id, VIDEO_MUTE, true);
-    } else if(msg === "unmute-video") {
+    } else if (msg === "unmute-video") {
       AppStore.handleMediaMute(id, VIDEO_MUTE, false);
     }
   }
@@ -115,7 +117,7 @@ class Client extends Component {
     if (result) {
       result.forEach((volume) => {
 
-        if(volume.uid && volume.uid !== "host") {
+        if (volume.uid && volume.uid !== "host") {
           if (volume.level > highestVolumeLevel) {
             speakerId = volume.uid;
             highestVolumeLevel = volume.level;
@@ -123,7 +125,7 @@ class Client extends Component {
         }
       });
 
-      if(speakerId && highestVolumeLevel > 0.05) { //Need some checking, just adding a level now
+      if (speakerId && highestVolumeLevel > 0.05) { //Need some checking, just adding a level now
         AppStore.setCurrentSpeaker(speakerId);
         //AppStore.sortSpeakers();
       } else {
@@ -134,7 +136,7 @@ class Client extends Component {
 
   handleAudioMute(uid, muted) {
     const userDiv = document.getElementById(uid);
-    if(userDiv) {
+    if (userDiv) {
       const badgeMute = userDiv.getElementsByClassName("badge-mute")[0];
       if (muted === true) {
         badgeMute.style.display = "block";
@@ -144,10 +146,22 @@ class Client extends Component {
     }
   }
 
+  async getEventDetails(userId) {
+    const {channel = ""} = EventApi.tokenDetails;
+
+    if (channel.length) {
+      console.log("USER JOINED -> Event Details");
+      await EventApi.getEventDetailByID(channel);
+      AppStore.addAudience(userId);
+      EventApi.getProducts(channel);
+    }
+  }
+
   handleUserJoined(user) {
-    //console.log("USER JOINED --> ", user.uid);
+    console.log("USER JOINED --> ", user.uid);
     if (user.uid !== "host") {
-      AppStore.addAudience(user.uid);
+      console.log("USER JOINED host --->", user.uid);
+      this.getEventDetails(user.uid);
     }
   }
 
@@ -159,27 +173,23 @@ class Client extends Component {
     await this.client.setClientRole(clientOptions.role);
 
     this.client.on("user-joined", (user) => this.handleUserJoined(user));
-
     this.client.on("user-published", (user, mediaType) => this.handleUserPublished(user, mediaType));
-
     this.client.on("user-info-updated", (user, msg) => this.handleUserInfoUpdated(user, msg));
-
     this.client.on("user-left", (user) => this.handleUserLeft(user));
 
     // check audio level
     this.client.enableAudioVolumeIndicator();
     this.client.on("volume-indicator", (result) => this.whoIsTheSpeaker(result));
 
-    const {appId, channel, token} = clientOptions;
+
+    const channel = this.searchParams.get('id');
+    const hostDetails = await EventApi.hostJoinEvent(channel);
+    const {agoraToken = "", id: uidHost = ""} = hostDetails;
+
+    const {appId} = clientOptions;
     //const token = cookies.get("agoraToken");
-    //const displayName = cookies.get("displayName") ?? uuidv4();
 
-    //const uidHost = this.urlParams.get("host") ? "host" : displayName;
-    const uidHost = "host";
-
-    console.log("CALL TOKEN -->", token);
-
-    const uid = await this.client.join(appId, channel, token, uidHost);
+    const uid = await this.client.join(appId, channel, agoraToken, uidHost.toString());
 
     this.localUid = uid.toString();
     AppStore.localUid = this.localUid;
@@ -196,17 +206,12 @@ class Client extends Component {
       await this.client.publish(Object.values(this.localTracks));
     }
 
-    if (this.isHost) {
-      AppStore.addHostInfo("audio", this.localTracks.audioTrack);
-      AppStore.addHostInfo("video", this.localTracks.videoTrack);
-      AppStore.addHostInfo("tag", "You");
-      AppStore.addHostInfo("ref", React.createRef());
-    } else {
-      console.log("VIDEO -->", this.localTracks.videoTrack);
-      AppStore.addAudience(uid);
-      AppStore.addTrack(uid, "audio", this.localTracks.audioTrack);
-      AppStore.addTrack(uid, "video", this.localTracks.videoTrack);
-    }
+    await this.getEventDetails();
+
+    AppStore.addHostInfo("audio", this.localTracks.audioTrack);
+    AppStore.addHostInfo("video", this.localTracks.videoTrack);
+    AppStore.addHostInfo("tag", "You");
+    AppStore.addHostInfo("ref", React.createRef());
   }
 
   handleResize() {
@@ -227,6 +232,7 @@ class Client extends Component {
   componentDidMount() {
     this.blockBackButton();
     this.startBasicCall();
+    EventApi.getProducts(this.searchParams.get('id'));
 
     const localPlayerBoundary = document.getElementsByClassName("host-player")[0].getBoundingClientRect();
     this.setState({
@@ -240,40 +246,6 @@ class Client extends Component {
         this.handleResize(), 500);
     });
   }
-
-  // handleAudio(type) {
-  //   console.log("HANDLE AUDIO -->", type);
-  //   switch (type) {
-  //     case "mute":
-  //       AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, true);
-  //       this.localTracks.audioTrack.setEnabled(false);
-  //       this.setState({isAudioActive: false});
-  //       break;
-  //
-  //     case "unmute":
-  //       AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, false);
-  //       this.localTracks.audioTrack.setEnabled(true);
-  //       this.setState({isAudioActive: true});
-  //       break;
-  //     default:
-  //       // do nothing
-  //   }
-  // }
-  //
-  // handleVideo(type) {
-  //   switch (type) {
-  //     case "off":
-  //       this.localTracks.videoTrack.setEnabled(false);
-  //       this.setState({isVideoActive: false});
-  //       break;
-  //     case "on":
-  //       this.localTracks.videoTrack.setEnabled(true);
-  //       this.setState({isVideoActive: true})
-  //       break;
-  //     default:
-  //       // do nothing
-  //   }
-  // }
 
   handleAudio() {
     const isAudioActive = !this.state.isAudioActive;
@@ -312,6 +284,8 @@ class Client extends Component {
                 className="player host-player"
                 id="host">
                 <Host/>
+                <HighlightedProducts />
+                <ProductList />
               </LocalPlayerAspectRatio>
             </Col>
           </Row>

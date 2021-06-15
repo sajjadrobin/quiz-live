@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { makeObservable, observable, action, runInAction } from "mobx";
 
-axios.defaults.baseURL = 'https://us-central1-bbu-rtc-poc.cloudfunctions.net/authApi';
 
 class MainApi {
   errorMessage = "";

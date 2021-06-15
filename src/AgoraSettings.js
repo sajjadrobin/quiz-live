@@ -1,8 +1,5 @@
 const clientOptions = {
-  appId: "530e02bb27b840258e2da5fc229aa700",
-  channel: "myChannel",
-  token: "006530e02bb27b840258e2da5fc229aa700IAClB2YTYQo7+2P1DXFV7AmNLXV4Ftd9c00QYZTLTGrQ8EOQEggAAAAAEAB+PjEWhlCvYAEAAQCGUK9g",
-  uid: null,
+  appId: "c40f710ec2294475babdafd6f9f9a708",
   role: "host",
 };
 

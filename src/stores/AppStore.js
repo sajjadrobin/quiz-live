@@ -40,7 +40,7 @@ class AppStore {
 
   addAudience(uid) {
     const index = this.audiences.findIndex((a) => a.uid === uid);
-    if(index === -1) {
+    if(uid && index === -1) {
       this.audiences.push({
         uid: uid, audio: null, video: null, audiomute: null, videomute: null
       });
