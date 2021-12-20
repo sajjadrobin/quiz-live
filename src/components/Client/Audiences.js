@@ -15,7 +15,8 @@ class Audiences extends Component {
     console.log("Participants ---->", toJS(participants));
     console.log("Audience Participants --->", toJS(audiences));
     return (
-      !!participants.length && audiences.map((audience, index) => {
+      // !!participants.length &&
+      audiences.map((audience, index) => {
         //No more self echo, no need to play your own audio track
         audience.uid !== AppStore.localUid && audience.audio && audience.audio.play();
         const badgeMuteClass = audience.audiomute ? "badge-mute-show" : "badge-mute-hide";
@@ -29,14 +30,14 @@ class Audiences extends Component {
         return (audience.video && !audience.videomute) ?
           <div className={"player-container-aspect-ratio " + currentSpeakerClass} key={audience.uid}>
             <AgoraVideoPlayer className="video-container this-agora" videoTrack={audience.video}  >
-              <div className="name-tag">{participant.name}</div>
+              <div className="name-tag">{`test`}</div>
               <div className={"badge-mute " + badgeMuteClass}>
                 <img src={MicMuted} alt="Mic" />
               </div>
             </AgoraVideoPlayer>
           </div> : <div className={"player-container-aspect-ratio " + currentSpeakerClass} key={audience.uid}>
             <div className="video-container empty-video-container">
-              <div className="name-tag">{participant.name}</div>
+              <div className="name-tag">{`test`}</div>
               <div className={"badge-mute " + badgeMuteClass}>
                 <img src={MicMuted} alt="Mic" />
               </div>

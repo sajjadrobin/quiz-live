@@ -19,7 +19,7 @@ class EventApi {
     participants: [],
   };
   tokenDetails = {};
-  baseUrl = "https://bbu-rtc-poc.ew.r.appspot.com/events";
+  baseUrl = "";//"https://bbu-rtc-poc.ew.r.appspot.com/events";
   highlightedProducts = [];
   productsList = [];
 

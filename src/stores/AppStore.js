@@ -67,10 +67,12 @@ class AppStore {
   addTrack(uid, type, track) {
     const oldAudiences = this.audiences;
     const index = oldAudiences.findIndex((a) => a.uid === uid);
-    const audience = oldAudiences[index];
-    audience[type] = track;
-    oldAudiences.splice(index, 1, audience);
-    this.audiences = oldAudiences;
+    if(index !== -1) {
+      const audience = oldAudiences[index];
+      audience[type] = track;
+      oldAudiences.splice(index, 1, audience);
+      this.audiences = oldAudiences;
+    }
   }
 
   handleMediaMute(uid, type, muted) {

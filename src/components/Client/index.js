@@ -182,11 +182,10 @@ class Client extends Component {
     this.client.on("volume-indicator", (result) => this.whoIsTheSpeaker(result));
 
 
-    const channel = this.searchParams.get('id');
-    const hostDetails = await EventApi.hostJoinEvent(channel);
-    const {agoraToken = "", id: uidHost = ""} = hostDetails;
+    //const channel = this.searchParams.get('id');
+    // const hostDetails = await EventApi.hostJoinEvent(channel);
+    const {appId, agoraToken = "", id: uidHost = "host", channel} = clientOptions;
 
-    const {appId} = clientOptions;
     //const token = cookies.get("agoraToken");
 
     const uid = await this.client.join(appId, channel, agoraToken, uidHost.toString());
