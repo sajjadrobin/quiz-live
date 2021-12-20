@@ -16,10 +16,10 @@ class MainApi {
   }
 
   async get(url, config = {}) {
-    const parent = this;
+    //const parent = this;
     this.resetErrorMessage();
-    return await axios.get(url, config).catch(function (error) {
-      const responseError = error.response.data || {};
+    return await axios.get(url, config).catch(function () {
+      // const responseError = error.response.data || {};
       runInAction(() => {
         // parent.errorMessage = responseError.message ? responseError.message : `There is an error in fetching ${url}`;
         // throw parent.errorMessage;
@@ -28,10 +28,10 @@ class MainApi {
   }
 
   async post(url, data = {}, config = {}) {
-    const parent = this;
+    // const parent = this;
     this.resetErrorMessage();
-    return await axios.post(url, data, config).catch(function (error) {
-      const responseError = error.response.data || {};
+    return await axios.post(url, data, config).catch(function () {
+      // const responseError = error.response.data || {};
       runInAction(() => {
         /*let errorMessage = responseError.message ? responseError.message : `There is an error in posting ${url}`;
 
@@ -49,9 +49,9 @@ class MainApi {
   }
 
   async put(url, data = {}, config = {}) {
-    const parent = this;
+    // const parent = this;
     this.resetErrorMessage();
-    return await axios.put(url, data, config).catch(function (error) {
+    return await axios.put(url, data, config).catch(function () {
       /* const responseError = error.response.data || {};
       runInAction(() => {
         parent.errorMessage = responseError.message ? responseError.message : `There is an error in updating ${url}`;
@@ -61,9 +61,9 @@ class MainApi {
   }
 
   async delete(url, config = {}) {
-    const parent = this;
+    // const parent = this;
     this.resetErrorMessage();
-    return await axios.delete(url, config).catch(function (error) {
+    return await axios.delete(url, config).catch(function () {
       /* const responseError = error.response.data || {};
       runInAction(() => {
         parent.errorMessage = responseError.message ? responseError.message : `There is an error in deleting ${url}`;

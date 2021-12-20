@@ -21,10 +21,11 @@ class Audiences extends Component {
         audience.uid !== AppStore.localUid && audience.audio && audience.audio.play();
         const badgeMuteClass = audience.audiomute ? "badge-mute-show" : "badge-mute-hide";
         const currentSpeakerClass = (currentSpeaker === audience.uid) ? 'current-speaker' : '';
+        /*
         const participant = participants.find(
           (participant) => participant.id.toString() === audience.uid
         );
-
+        */
         //for video mute showing a placeholder with empty-video-container class with black bg
         //Can be refactored to make it better
         return (audience.video && !audience.videomute) ?

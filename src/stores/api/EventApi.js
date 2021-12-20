@@ -62,7 +62,7 @@ class EventApi {
   async updateParticipant(name) {
     const { channel: id, email } = this.tokenDetails;
     try {
-      const result = await MainApi.put(
+      await MainApi.put(
         `${this.baseUrl}/${id}/participants/${email}`,
         {
           name,
