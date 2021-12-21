@@ -160,6 +160,7 @@ class Client extends Component {
   handleUserJoined(user) {
     console.log("USER JOINED --> ", user.uid);
     if (user.uid !== "host") {
+      AppStore.addAudience(user.uid);
       console.log("USER JOINED host --->", user.uid);
       this.getEventDetails(user.uid);
     }
