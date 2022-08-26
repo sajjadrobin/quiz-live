@@ -2,13 +2,14 @@ import React, { Component } from "react";
 import { Drawer, Button, List, Avatar } from 'antd';
 import { observer } from "mobx-react";
 import EventApi from "stores/api/EventApi";
+import ProductItemList from "data/ProductList.json";
 import "./Product.scss";
 
 class ProductList extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      visible: false
+      visible: true
     }
   }
 
@@ -27,7 +28,8 @@ class ProductList extends Component {
   }
 
   render() {
-    const productsList = EventApi.productsList;
+    //const productsList = EventApi.productsList;
+    const productsList = ProductItemList;
     console.log("PRODUCT LIST ->", productsList);
     return (
       <>
@@ -48,7 +50,7 @@ class ProductList extends Component {
               <List.Item className="product-item">
                 <List.Item.Meta
                   avatar={<Avatar src={product.image} />}
-                  title={<a href="https://ant.design">{product.title}</a>}
+                  title={<a href="https://ant.design">{product.name} - {product.price}</a>}
                 />
                 {product.active && (
                   <Button
