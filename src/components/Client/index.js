@@ -147,7 +147,7 @@ class Client extends Component {
   }
 
   async getEventDetails(userId) {
-    const {channel = ""} = EventApi.tokenDetails;
+    const { channel = "" } = EventApi.tokenDetails;
 
     if (channel.length) {
       console.log("USER JOINED -> Event Details");
@@ -185,15 +185,15 @@ class Client extends Component {
 
     //const channel = this.searchParams.get('id');
     // const hostDetails = await EventApi.hostJoinEvent(channel);
-    const {appId, agoraToken = "", id: uidHost = "host", channel} = clientOptions;
+    const { appId, agoraToken = "", channel } = clientOptions;
 
     //const token = cookies.get("agoraToken");
 
-    const uid = await this.client.join(appId, channel, agoraToken, uidHost.toString());
+    const uid = await this.client.join(appId, channel, agoraToken, 1);
 
-    this.localUid = uid.toString();
+    this.localUid = uid;
     AppStore.localUid = this.localUid;
-
+    console.log('uid -->', uid);
     const VideoEncoderConfigurationPreset = this.isHost ? "480p_8" : "120p_3";
 
     this.localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -251,7 +251,7 @@ class Client extends Component {
     const isAudioActive = !this.state.isAudioActive;
     AppStore.handleMediaMute(this.localUid, AUDIO_MUTE, !isAudioActive);
     this.localTracks.audioTrack.setEnabled(isAudioActive);
-    this.setState({isAudioActive});
+    this.setState({ isAudioActive });
     // this.localStream.getAudioTracks()[0].enabled = isAudioActive;
     // this.setState({isAudioActive});
   }
@@ -259,7 +259,7 @@ class Client extends Component {
   handleVideo() {
     const isVideoActive = !this.state.isVideoActive;
     this.localTracks.videoTrack.setEnabled(isVideoActive);
-    this.setState({isVideoActive});
+    this.setState({ isVideoActive });
     // this.localStream.getVideoTracks()[0].enabled = isVideoActive;
     // this.setState({isVideoActive});
   }
@@ -270,7 +270,7 @@ class Client extends Component {
 
   render() {
     //console.log("RENDER TOKEN ->", UserApi.agoraToken);
-    const {isAudioActive, isVideoActive, localPlayerContainerWidth, localPlayerContainerHeight} = this.state;
+    const { isAudioActive, isVideoActive, localPlayerContainerWidth, localPlayerContainerHeight } = this.state;
     return (
       <div className="client-container">
         <div className="host-audience-container">
@@ -283,7 +283,7 @@ class Client extends Component {
                 idealWidth={window.innerWidth * 0.75 - 48}
                 className="player host-player"
                 id="host">
-                <Host/>
+                <Host />
                 <HighlightedProducts />
                 <ProductList />
               </LocalPlayerAspectRatio>
@@ -299,7 +299,7 @@ class Client extends Component {
                 id="remote-users-wrapper"
               >
                 <ScrollContainer className="remote-users-container">
-                  <Audiences/>
+                  <Audiences />
                 </ScrollContainer>
               </CarouselAspectRatio>
             </Col>
@@ -311,38 +311,38 @@ class Client extends Component {
             className={`${isVideoActive ? "active-media" : "not-active-media"} camera-mic-buttons`}>
             {isVideoActive && (<img
               alt="Video Off"
-              src={VideoOn}/>)}
+              src={VideoOn} />)}
 
             {!isVideoActive && (<img
               alt="Video On"
-              src={VideoOff}/>)}
+              src={VideoOff} />)}
           </div>
           <div
             onClick={() => this.handleAudio()}
             className={`${isAudioActive ? "active-media" : "not-active-media"} camera-mic-buttons`}>
             {isAudioActive && (<img
               alt="Mic On"
-              src={MicOn}/>)}
+              src={MicOn} />)}
             {!isAudioActive && (<img
               alt="Mic Off"
-              src={MicOff}/>)}
+              src={MicOff} />)}
           </div>
           <div className="active-media camera-mic-buttons">
             <img
               alt="Hand Raise"
-              src={Hand}/>
+              src={Hand} />
           </div>
           <div className="active-media camera-mic-buttons">
             <img
               alt="Chat"
-              src={Chat}/>
+              src={Chat} />
           </div>
           {this.isHost && (
             <>
               <label>16:9</label>
               <Select
                 defaultValue="480p_8"
-                style={{width: 120}}
+                style={{ width: 120 }}
                 onChange={(value) => this.setVideoEncoderConfigurationPreset(value)}>
                 <Select.Option value="180p_1">180p_1</Select.Option>
                 <Select.Option value="360p_1">360p_1</Select.Option>
@@ -354,7 +354,7 @@ class Client extends Component {
               <label>Square</label>
               <Select
                 defaultValue="480p_6"
-                style={{width: 120}}
+                style={{ width: 120 }}
                 onChange={(value) => this.setVideoEncoderConfigurationPreset(value)}>
                 <Select.Option value="120p_3">120p_3</Select.Option>
                 <Select.Option value="180p_3">180p_3</Select.Option>
