@@ -2,7 +2,7 @@ const clientOptions = {
   appId: "ef394f7dc5134ee180f1ead957784a84",
   role: "host",
   agoraToken:
-    "007eJxTYAjr7n9p8/nPic+Vv36tjEhI76y5q3M1pOfylCIv8YVMNvcUGFLTjC1N0sxTkk0NjU1SUw0tDNIMUxNTLE3NzS1MEi1MGD7cS2sIZGSYWvWYmZEBAkF8FobC0swqBgYAVk0i4g==",
+    "007eJxTYHh48P5jFW+7w1t83XarTvu1c7Xogcr+5KR/dWInzY1ONzxVYEhNM7Y0STNPSTY1NDZJTTW0MEgzTE1MsTQ1N7cwSbQwyfmvltEQyMgwdbUcMyMDBIL4LAyFpZlVDAwA+eYhag==",
   channel: "quiz",
 };
 
